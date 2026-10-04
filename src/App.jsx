@@ -283,9 +283,10 @@ export default function App() {
               className="h-full w-full bg-slate-950"
             >
               <TileLayer
-                url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-                attribution="&copy; OpenStreetMap contributors &copy; CARTO"
-              />
+  url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+  attribution="&copy; OpenStreetMap contributors"
+  className="dark-tiles"
+/>
               <Polyline
                 positions={path}
                 pathOptions={{ color: '#22d3ee', weight: 2, dashArray: '6 8', opacity: 0.8 }}
