@@ -4,40 +4,33 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   Compass, Anchor, ChevronLeft, ChevronRight, Landmark, Cog, Sparkles,
-  Wallet, Car, ShieldCheck, Snowflake, X, MapPin, ExternalLink,
+  Wallet, Bus, ShieldCheck, Snowflake, X, MapPin, ExternalLink,
 } from 'lucide-react'
 import stops from './data/stops.json'
+import plans from './data/plans.json'
 
-const CATEGORIES = ['Все', 'Наука', 'Индустрия', 'Стратегия и Флот', 'Культура и Этнос']
-
-const DAYS = [
-  { day: 1, title: 'Кандалакшский залив и Кольская АЭС', ids: [1, 2] },
-  { day: 2, title: 'Хибины (Апатит) и Ловозеро (Саамы)', ids: [3, 4] },
-  { day: 3, title: 'Мончегорск и Кольская сверхглубокая (СГ-3)', ids: [5, 6] },
-  { day: 4, title: 'Мурманск: ледокол «Ленин», мемориал «Алёша» и Североморск', ids: [7, 8, 9] },
-  { day: 5, title: 'Териберка и выход к Баренцеву морю', ids: [10] },
-]
+const CATEGORIES = ['Все', 'Наука', 'Индустрия', 'Стратегия и Флот', 'Культура и Этнос', 'Природа']
 
 const ECONOMICS = [
   {
     icon: Wallet,
-    title: 'Ориентировочный бюджет',
-    text: 'Средний чек 6 000 – 8 500 ₽/сутки на человека: аренда кроссовера, проживание, топливо АИ-95, входные билеты.',
+    title: 'Бюджет: реальные цены',
+    text: 'Ледокол «Ленин» — 800 ₽, краеведческий музей — 700 ₽ (студентам 350 ₽). Автобус до Териберки — 776 ₽, до Кировска — около 1 500–1 700 ₽. Отели: Мурманск от 1 700 ₽/сутки, Кировск от 3 000 ₽/сутки.',
   },
   {
-    icon: Car,
+    icon: Bus,
     title: 'Логистика и транспорт',
-    text: 'Трасса Р-21 «Кола», специфика зимников, необходимость полного привода для Териберки.',
+    text: 'До Мурманска: самолёт из Москвы от 3 700 ₽ (2 ч 35 мин), поезд от 3 382 ₽ (от 1 суток 7 часов), на машине около 1 950 км по трассам «Нева» и Р-21 «Кола». Внутри области всё доступно автобусом из Мурманска: Териберка (№ 241Э, 09:00, обратно 16:30; с 1 июня 2026 — вт, чт, сб, вс и праздники) и Кировск (3 ч 20 мин – 4 ч 25 мин).',
   },
   {
     icon: ShieldCheck,
-    title: 'Погранзона и ЗАТО',
-    text: 'Особенности въезда в Североморск (спецпропуска через Госуслуги / штаб СФ) и приграничный статус Печенгского района.',
+    title: 'Закрытые и приграничные объекты',
+    text: 'Доступ к Кольской АЭС, территории «Североникеля», скважине СГ-3 (приграничная зона Печенгского района) и Североморску (ЗАТО) ограничен: нужны пропуска или спецразрешения. Поэтому СГ-3 в маршруте представлена керном в краеведческом музее, а Мончегорск — «снаружи», по пути в Кировск.',
   },
   {
     icon: Snowflake,
     title: 'Сезонные окна',
-    text: 'Полярный день (июнь–июль, круглосуточный свет) против сезона северного сияния (сентябрь–март).',
+    text: 'Зима (декабрь–февраль): полярная ночь (примерно со 2 декабря до середины января), северное сияние, снегоходы, хаски, айс-флоатинг. Лето (июнь–июль): полярный день и морские прогулки к китам. Горные лыжи в Хибинах: с ноября по май. Зимой дорога до Териберки может затянуться из-за погоды.',
   },
 ]
 
@@ -68,7 +61,7 @@ function makeIcon(order, active, dim) {
 function FlyToStop({ stop }) {
   const map = useMap()
   useEffect(() => {
-    if (stop) map.flyTo(stop.coords, 9, { duration: 1.2 })
+    if (stop) map.flyTo(stop.coords, 10, { duration: 1.2 })
   }, [stop, map])
   return null
 }
@@ -80,7 +73,7 @@ function Inspector({ stop, onPrev, onNext, onClose }) {
         <MapPin className="mb-3 h-8 w-8 text-cyan-400" />
         <p className="font-serif text-xl tracking-tight text-slate-100">Выберите точку на карте</p>
         <p className="mt-2 text-sm text-slate-400">
-          Нажмите на номер маршрута, чтобы открыть карточку объекта.
+          Нажмите на номер маршрута или на кнопку с номером над картой, чтобы открыть карточку объекта.
         </p>
         <button
           onClick={onNext}
@@ -91,6 +84,10 @@ function Inspector({ stop, onPrev, onNext, onClose }) {
       </div>
     )
   }
+
+  const visit = stop.visit
+    ? [['Дорога', stop.visit.how], ['Стоимость', stop.visit.cost], ['Время', stop.visit.hours]].filter(([, v]) => v)
+    : []
 
   return (
     <article className="overflow-hidden rounded-xl border border-slate-800 bg-slate-900/80">
@@ -156,6 +153,22 @@ function Inspector({ stop, onPrev, onNext, onClose }) {
           <p className="text-sm text-slate-200">{stop.funFact}</p>
         </div>
 
+        {visit.length > 0 && (
+          <div className="rounded-lg border border-slate-800 bg-slate-950/60 p-4">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-cyan-400">
+              <Bus className="h-4 w-4" /> Как попасть
+            </div>
+            <dl className="space-y-1.5 text-sm text-slate-300">
+              {visit.map(([k, v]) => (
+                <div key={k}>
+                  <dt className="inline text-slate-500">{k}: </dt>
+                  <dd className="inline">{v}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        )}
+
         <div className="flex justify-between gap-3">
           <button
             onClick={onPrev}
@@ -180,11 +193,11 @@ function Inspector({ stop, onPrev, onNext, onClose }) {
 export default function App() {
   const [activeId, setActiveId] = useState(null)
   const [category, setCategory] = useState('Все')
-  const [day, setDay] = useState(1)
+  const [planId, setPlanId] = useState(plans[0].id)
 
   const active = stops.find((s) => s.id === activeId) || null
   const path = stops.map((s) => s.coords)
-  const currentDay = DAYS.find((d) => d.day === day)
+  const currentPlan = plans.find((p) => p.id === planId)
 
   const go = (delta) => {
     if (!active) return setActiveId(stops[0].id)
@@ -233,19 +246,20 @@ export default function App() {
             От поморских берегов до атомного флота
           </p>
           <p className="mt-6 max-w-2xl text-lg italic text-slate-300">
-            «Исследовательская экспедиция через 10 опорных точек Заполярья: от древних поморских
-            стоянок до атомных ледоколов и глубочайшей скважины Земли.»
+            «Десять опорных точек Заполярья, до которых можно добраться на автобусе из Мурманска: от
+            атомного ледокола и керна сверхглубокой скважины до апатитовых рудников Хибин и берега
+            Баренцева моря.»
           </p>
 
           <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
               ['10', 'Ключевых точек'],
-              ['~950 км', 'Протяжённость маршрута'],
-              ['66°33′ N', 'Пересечение полярного круга'],
-              ['5 дней', 'Расчётное время экспедиции'],
+              ['4', 'Готовых сценария: 3 и 5 дней'],
+              ['66°33′ N', 'Полярный круг'],
+              ['~130 км', 'Мурманск — Териберка'],
             ].map(([value, label]) => (
               <div key={label} className="rounded-xl border border-slate-800 bg-slate-900/80 p-5">
-                <div className="font-serif text-3xl font-bold text-cyan-400">{value}</div>
+                <div className="font-sans text-3xl font-bold text-cyan-400">{value}</div>
                 <div className="mt-1 text-sm text-slate-400">{label}</div>
               </div>
             ))}
@@ -273,6 +287,24 @@ export default function App() {
           ))}
         </div>
 
+        <div className="mt-4 flex flex-wrap gap-1.5">
+          {stops.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => setActiveId(s.id)}
+              title={s.name}
+              className={
+                'h-8 w-8 rounded-full border text-xs font-bold transition ' +
+                (s.id === activeId
+                  ? 'border-white bg-cyan-600 text-white'
+                  : 'border-slate-700 text-slate-400 hover:border-cyan-500')
+              }
+            >
+              {pad(s.order)}
+            </button>
+          ))}
+        </div>
+
         <div className="mt-6 grid gap-6 lg:grid-cols-5">
           <div className="isolate h-[60vh] min-h-[420px] overflow-hidden rounded-xl border border-slate-800 lg:col-span-3 lg:h-[780px]">
             <MapContainer
@@ -283,10 +315,10 @@ export default function App() {
               className="h-full w-full bg-slate-950"
             >
               <TileLayer
-  url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-  attribution="&copy; OpenStreetMap contributors"
-  className="dark-tiles"
-/>
+                url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                attribution="&copy; OpenStreetMap contributors"
+                className="dark-tiles"
+              />
               <Polyline
                 positions={path}
                 pathOptions={{ color: '#22d3ee', weight: 2, dashArray: '6 8', opacity: 0.8 }}
@@ -296,6 +328,7 @@ export default function App() {
                   key={s.id}
                   position={s.coords}
                   icon={makeIcon(s.order, s.id === activeId, category !== 'Все' && s.category !== category)}
+                  zIndexOffset={s.id === activeId ? 1000 : 0}
                   eventHandlers={{ click: () => setActiveId(s.id) }}
                 />
               ))}
@@ -317,43 +350,51 @@ export default function App() {
       {/* Itinerary */}
       <section id="itinerary" className="border-y border-slate-800 bg-slate-900/40">
         <div className="mx-auto max-w-7xl scroll-mt-20 px-4 py-16">
-          <h2 className="font-serif text-3xl tracking-tight text-slate-50">Сценарий 5-дневной экспедиции</h2>
+          <h2 className="font-serif text-3xl tracking-tight text-slate-50">Сценарии поездки</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Выберите длительность и темп. Названия точек кликабельны и открывают карточку на карте.
+          </p>
           <div className="mt-6 flex flex-wrap gap-2">
-            {DAYS.map((d) => (
+            {plans.map((p) => (
               <button
-                key={d.day}
-                onClick={() => setDay(d.day)}
+                key={p.id}
+                onClick={() => setPlanId(p.id)}
                 className={
                   'rounded-lg border px-4 py-2 text-sm transition ' +
-                  (day === d.day
+                  (planId === p.id
                     ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300'
                     : 'border-slate-800 text-slate-400 hover:border-slate-600')
                 }
               >
-                День {d.day}
+                {p.label}
               </button>
             ))}
           </div>
 
-          <div className="mt-6 rounded-xl border border-slate-800 bg-slate-900/80 p-6">
-            <p className="text-xs font-semibold tracking-widest text-cyan-400">ДЕНЬ {currentDay.day}</p>
-            <h3 className="mt-1 font-serif text-2xl tracking-tight text-slate-50">{currentDay.title}</h3>
-            <ol className="mt-5 space-y-3 border-l border-slate-700 pl-5">
-              {currentDay.ids.map((id) => {
-                const s = stops.find((x) => x.id === id)
-                return (
-                  <li key={id} className="relative">
-                    <span className="absolute -left-[31px] flex h-5 w-5 items-center justify-center rounded-full bg-cyan-600 text-[10px] font-bold text-white">
-                      {s.order}
-                    </span>
-                    <button onClick={() => openStop(id)} className="text-left">
-                      <span className="font-medium text-slate-100 hover:text-cyan-300">{s.name}</span>
-                      <span className="block text-sm text-slate-400">{s.shortDesc}</span>
-                    </button>
-                  </li>
-                )
-              })}
-            </ol>
+          <div className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {currentPlan.days.map((d) => (
+              <div key={d.day} className="rounded-xl border border-slate-800 bg-slate-900/80 p-5">
+                <p className="text-xs font-semibold uppercase tracking-widest text-cyan-400">{d.day}</p>
+                <h3 className="mt-1 font-serif text-xl tracking-tight text-slate-50">{d.title}</h3>
+                <ul className="mt-4 space-y-2.5 text-sm">
+                  {d.items.map((it, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="w-28 shrink-0 pt-0.5 font-mono text-xs text-slate-500">{it.time}</span>
+                      {it.stopId ? (
+                        <button
+                          onClick={() => openStop(it.stopId)}
+                          className="text-left text-cyan-300 hover:underline"
+                        >
+                          {it.text}
+                        </button>
+                      ) : (
+                        <span className="text-slate-300">{it.text}</span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -384,7 +425,7 @@ export default function App() {
           </a>
           <p className="text-xs">
             Тексты подготовлены на основе открытых источников и носят ознакомительный характер;
-            перед поездкой уточняйте актуальные условия въезда и работы объектов.
+            цены и расписания могут меняться, перед поездкой уточняйте актуальные условия.
           </p>
         </div>
       </footer>
