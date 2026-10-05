@@ -4,10 +4,11 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import {
   Compass, Anchor, ChevronLeft, ChevronRight, Landmark, Cog, Sparkles,
-  Wallet, Bus, ShieldCheck, Snowflake, X, MapPin, ExternalLink,
+  Wallet, Bus, ShieldCheck, Snowflake, X, MapPin, ExternalLink, Bed,
 } from 'lucide-react'
 import stops from './data/stops.json'
 import plans from './data/plans.json'
+import hotelClusters from './data/hotels.json'
 
 const CATEGORIES = ['Все', 'Наука', 'Индустрия', 'Стратегия и Флот', 'Культура и Этнос', 'Природа']
 
@@ -194,10 +195,12 @@ export default function App() {
   const [activeId, setActiveId] = useState(null)
   const [category, setCategory] = useState('Все')
   const [planId, setPlanId] = useState(plans[0].id)
+  const [activeCluster, setActiveCluster] = useState(hotelClusters[0].cluster)
 
   const active = stops.find((s) => s.id === activeId) || null
   const path = stops.map((s) => s.coords)
   const currentPlan = plans.find((p) => p.id === planId)
+  const currentHotels = hotelClusters.find((c) => c.cluster === activeCluster) || hotelClusters[0]
 
   const go = (delta) => {
     if (!active) return setActiveId(stops[0].id)
@@ -229,6 +232,7 @@ export default function App() {
             <a href="#map" className="hover:text-cyan-300">Карта</a>
             <a href="#itinerary" className="hover:text-cyan-300">Маршрут</a>
             <a href="#economics" className="hover:text-cyan-300">Логистика</a>
+            <a href="#hotels" className="hover:text-cyan-300">Отели</a>
           </nav>
         </div>
       </header>
@@ -246,7 +250,7 @@ export default function App() {
             От поморских берегов до атомного флота
           </p>
           <p className="mt-6 max-w-2xl text-lg italic text-slate-300">
-            «Десять опорных точек Заполярья, до которых можно добраться на автобусе из Мурманска: от
+            «Десять опорных точек Заполярья, до которых можно добраться на общественном транспорте: от
             атомного ледокола и керна сверхглубокой скважины до апатитовых рудников Хибин и берега
             Баренцева моря.»
           </p>
@@ -254,7 +258,7 @@ export default function App() {
           <div className="mt-12 grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
               ['10', 'Ключевых точек'],
-              ['4', 'Готовых сценария: 3 и 5 дней'],
+              ['4', 'Сценария: 3 и 5 дней'],
               ['66°33′ N', 'Полярный круг'],
               ['~130 км', 'Мурманск — Териберка'],
             ].map(([value, label]) => (
@@ -413,10 +417,77 @@ export default function App() {
         </div>
       </section>
 
+      {/* Hotels / Base Camps Section */}
+      <section id="hotels" className="border-t border-slate-800 bg-slate-900/40">
+        <div className="mx-auto max-w-7xl scroll-mt-20 px-4 py-16">
+          <div className="flex items-center gap-3">
+            <Bed className="h-7 w-7 text-cyan-400" />
+            <h2 className="font-serif text-3xl tracking-tight text-slate-50">Базы экспедиции и проживание</h2>
+          </div>
+          <p className="mt-2 text-sm text-slate-400">
+            Опорные отели и проверенные мотели по маршруту с актуальным порядком цен на сезон.
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-2">
+            {hotelClusters.map((c) => (
+              <button
+                key={c.cluster}
+                onClick={() => setActiveCluster(c.cluster)}
+                className={
+                  'rounded-lg border px-4 py-2 text-sm transition ' +
+                  (activeCluster === c.cluster
+                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300'
+                    : 'border-slate-800 text-slate-400 hover:border-slate-600')
+                }
+              >
+                {c.clusterName}
+              </button>
+            ))}
+          </div>
+
+          <p className="mt-4 text-xs italic text-slate-400">
+            {currentHotels.description}
+          </p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-3">
+            {currentHotels.items.map((hotel) => (
+              <div
+                key={hotel.name}
+                className="flex flex-col justify-between rounded-xl border border-slate-800 bg-slate-900/80 p-5 transition hover:border-slate-700"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-2">
+                    <span className="rounded border border-cyan-500/40 bg-cyan-500/10 px-2 py-0.5 text-[11px] font-semibold text-cyan-300">
+                      {hotel.tier}
+                    </span>
+                    <span className="font-mono text-sm font-semibold text-cyan-400">
+                      {hotel.price}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 font-serif text-lg font-bold text-slate-100">{hotel.name}</h3>
+                  <p className="mt-1 text-xs text-slate-400">{hotel.location}</p>
+                  <p className="mt-3 text-sm text-slate-300 leading-relaxed">{hotel.features}</p>
+                </div>
+                <div className="mt-5 border-t border-slate-800/80 pt-4">
+                  <a
+                    href={hotel.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-cyan-400 hover:text-cyan-300"
+                  >
+                    Сайт объекта <ExternalLink className="h-3 w-3" />
+                  </a>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* Footer */}
       <footer className="border-t border-slate-800 bg-slate-950">
         <div className="mx-auto max-w-7xl space-y-2 px-4 py-8 text-sm text-slate-500">
-          <p>Учебный проект НИУ ВШЭ по дисциплине «ОРГ». Авторы: [Имя Фамилия], [Имя Фамилия].</p>
+          <p>Учебный проект НИУ ВШЭ по дисциплине «ОРГ». Авторы: Евдокимов Данила, Солдатова Кристина.</p>
           <a
             href="https://github.com/"
             className="inline-flex items-center gap-1 text-cyan-400 hover:text-cyan-300"
